@@ -1,6 +1,6 @@
 /* =====================================================================
    PROMPT FORGE — app.js
-   Figma → cleaned JSON → LLM-ready prompt, 100% client-side.
+   Figma → cleaned JSON → LLM-ready prompt. 100% client-side.
    --------------------------------------------------------------------- */
 
 (() => {
@@ -12,12 +12,107 @@
 
   const FIGMA_API = "https://api.figma.com/v1";
   const TOKEN_STORAGE_KEY = "pf.figma_token";
-  const PROMPT_VERSION = "1.0";
+  const RULE_FILE_STORAGE_KEY = "pf.rule_file_overrides";
+  const PROMPT_VERSION = "1.1";
 
-  // Prompt templates per target platform.
-  // {{json}}, {{notes}}, {{images}}, {{rawJson}} are placeholders.
+  // Default rule-file name per platform. User can override per-session.
+  const DEFAULT_RULE_FILES = {
+    android_xml: "SYSTEM_RULE_MCP_FIGMA_ANDROID_XML_FINAL.md",
+    compose: "SYSTEM_RULE_MCP_FIGMA_COMPOSE_FINAL.md",
+    swiftui: "SYSTEM_RULE_MCP_FIGMA_SWIFTUI_FINAL.md",
+    react_tsx: "SYSTEM_RULE_MCP_FIGMA_REACT_FINAL.md",
+    flutter: "SYSTEM_RULE_MCP_FIGMA_FLUTTER_FINAL.md",
+    raw: "",
+  };
+
+  // i18n / long-text safety rules per platform. Inserted when toggle is on.
+  const I18N_RULES = {
+    android_xml: `## i18n & long-text safety (CRITICAL)
+
+The Figma design is in the source language only. Generated layouts MUST tolerate translations where the text grows 30–80% (German, Finnish, Russian) or wraps differently (Chinese, Japanese, Arabic RTL). Follow every rule below:
+
+1. **Never use \`wrap_content\` for text inside a horizontal LinearLayout with siblings.** Use \`android:layout_width="0dp"\` + \`android:layout_weight\` to share space, or wrap in a ConstraintLayout chain with \`app:layout_constrainedWidth="true"\`.
+2. **Single-line text must always specify ellipsize:** \`android:maxLines="1"\` + \`android:ellipsize="end"\`. Without these, long translations push siblings off-screen.
+3. **Multi-line text must cap lines:** \`android:maxLines="N"\` (use design intent + 1 as headroom) plus \`android:ellipsize="end"\`.
+4. **Containers holding text use \`android:minHeight\`, not fixed \`android:layout_height\`.** A fixed height clips wrapped text.
+5. **Buttons & chips: \`android:minWidth\` + \`wrap_content\`, never fixed width.** Material baseline is \`android:minWidth="88dp"\`.
+6. **For text that must fit a fixed area:** use \`app:autoSizeTextType="uniform"\`, \`app:autoSizeMinTextSize="12sp"\`, \`app:autoSizeMaxTextSize="<design_size>sp"\` on \`MaterialTextView\`/\`AppCompatTextView\`.
+7. **RTL-safe attributes only:** \`paddingStart/paddingEnd\`, \`layout_marginStart/layout_marginEnd\`, \`drawableStart/drawableEnd\`. Never use \`left/right\` equivalents.
+8. **Use \`android:textAlignment\` instead of \`android:gravity\`** for text alignment so RTL flips correctly.
+9. **Icon + text rows:** put the icon in a fixed-width wrapper (\`android:layout_width="24dp"\`). Never apply \`layout_weight\` to the icon. Prefer \`app:icon\` on \`MaterialButton\` so the icon-text relationship is managed by the component.
+10. **Every user-visible string must come from \`res/values/strings.xml\`** — \`@string/...\`. No hardcoded literals in layout XML. Provide \`tools:text\` for design-time preview if helpful.
+11. **TextView inside ScrollView/RecyclerView item:** allow vertical growth via \`wrap_content\` height and \`maxLines\` to bound, never \`fixed\` height.
+12. **Pseudo-localization sanity check:** mentally pseudo-localize each string (e.g. "Sign in" → "[Šîgñ ïñ — verify the layout still holds]"). If a string is in a row with a sibling, it must be flex-constrained.
+`,
+    compose: `## i18n & long-text safety (CRITICAL)
+
+Generated Compose UI MUST tolerate translations that grow 30–80% (DE/FI/RU) or wrap differently (CJK, RTL). Follow every rule below:
+
+1. **Text inside \`Row\` shares space via \`Modifier.weight(1f)\`** — never let a Text default to \`wrapContentWidth\` next to siblings that can also grow.
+2. **Always specify \`maxLines\` and \`overflow\`:** \`maxLines = 1, overflow = TextOverflow.Ellipsis\` for single-line; pick a sensible \`maxLines\` plus ellipsis for multi-line.
+3. **Use intrinsic / min sizing** rather than fixed \`width\`/\`height\` on text containers: \`Modifier.heightIn(min = ...)\` and \`widthIn(min = ...)\`.
+4. **Buttons:** rely on Material3 defaults (\`Modifier.defaultMinSize\`) — don't pin \`Modifier.width(...)\` unless the design language genuinely requires it.
+5. **For text that must fit a fixed box:** combine \`maxLines\` with \`AutoSizeText\` (custom) or \`onTextLayout\` shrink logic. Document the assumption.
+6. **RTL-safe modifiers:** use \`Modifier.padding(start = ..., end = ...)\` (start/end aware) — never \`PaddingValues\` from \`left/right\`. Test with \`CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl)\` in Previews.
+7. **Use \`TextAlign.Start\`/\`TextAlign.End\`** instead of \`Left\`/\`Right\`.
+8. **Icon + text in \`Row\`:** put the icon in its own sized \`Box\`/\`Icon\` with \`Modifier.size(24.dp)\`, not weighted. Use Material3 \`Button(leadingIcon = ...)\` where applicable.
+9. **All user-visible strings via \`stringResource(R.string.*)\`.** No literals.
+10. **Add a Preview with the longest known translation** (e.g. a 60-char fake) for every screen-level composable.
+11. **Set \`softWrap = true\`** (the default) on multi-line text; never disable softWrap on text that could be translated.
+`,
+    swiftui: `## i18n & long-text safety (CRITICAL)
+
+Generated SwiftUI must tolerate translations that grow 30–80% (DE/FI/RU) or wrap differently (CJK, RTL). Follow every rule:
+
+1. **Always set \`.lineLimit(_:)\`** on Text. Use a number for hard cap, \`nil\` only when growth is acceptable.
+2. **Pair \`.lineLimit\` with \`.truncationMode(.tail)\`** for single-line.
+3. **For text that must shrink to fit:** \`.minimumScaleFactor(0.7)\` plus \`.lineLimit(1)\`.
+4. **In HStack:** use \`.layoutPriority(1)\` on the text that must keep its space, and \`.layoutPriority(0)\` (default) on flexible siblings. Combine with \`Spacer()\` and \`.frame(maxWidth: .infinity, alignment: .leading)\`.
+5. **Allow vertical growth** in VStack: \`.fixedSize(horizontal: false, vertical: true)\` on Text containers that should expand.
+6. **Never hardcode \`.frame(width:)\` on Text.** Use \`.frame(minWidth:, maxWidth:)\` with sensible bounds.
+7. **Use \`LocalizedStringKey\` everywhere:** \`Text("Sign in")\` should resolve via String Catalog — don't pass raw \`String\` for user-visible copy.
+8. **RTL-safe:** prefer \`.padding(.leading, .trailing)\` (which honor layout direction) over \`.padding(.horizontal)\` only when you need symmetry — both are fine. Avoid raw \`.offset(x:)\` for direction-sensitive positioning; use \`Environment(\\\\.layoutDirection)\`.
+9. **Icon + text:** \`Label(_, systemImage:)\` or \`HStack { Image; Text }\` with the image given a fixed \`.frame(width: 24, height: 24)\`. Do not let the image flex.
+10. **Add Previews with \`.environment(\\\\.locale, Locale(identifier: "de"))\`** plus a long pseudo-translated string for every screen.
+11. **Never break long strings with \`\\n\` literals** for layout reasons — let SwiftUI wrap.
+`,
+    react_tsx: `## i18n & long-text safety (CRITICAL)
+
+Generated React must tolerate translations that grow 30–80% (DE/FI/RU) or wrap differently (CJK, RTL). Follow every rule:
+
+1. **Every flex child that contains text needs \`min-w-0\`.** Without it, text refuses to shrink and overflows the flex container. This is the most common i18n bug. Apply: \`<div className="flex-1 min-w-0">\`.
+2. **Single-line text:** use Tailwind \`truncate\` (which is shorthand for \`overflow-hidden text-ellipsis whitespace-nowrap\`). Apply on the text node, not a wrapper.
+3. **Multi-line clamp:** \`line-clamp-N\` (Tailwind v3+). For variable clamps use \`[--clamp:3] line-clamp-[var(--clamp)]\`.
+4. **Long unbreakable strings** (URLs, IDs): add \`break-words\` or \`break-all\` so they don't break the layout horizontally; default to \`overflow-wrap: anywhere\` in global CSS for body copy.
+5. **Buttons:** \`whitespace-nowrap\` only when the design truly requires a single line. Otherwise allow wrap and use \`min-h-[40px]\` instead of fixed height.
+6. **\`flex-1\` over \`flex-grow flex-shrink-0\`** unless you genuinely want no shrink.
+7. **RTL-safe utilities:** use Tailwind logical properties — \`ps-*\` (padding-inline-start), \`pe-*\`, \`ms-*\`, \`me-*\`, \`start-0\`, \`end-0\` — never \`pl-*\`/\`pr-*\` for direction-sensitive spacing.
+8. **Set \`dir="auto"\`** on root text containers that might receive RTL content.
+9. **All user-visible strings via i18n keys** (\`t("login.submit")\`) — no hardcoded literals in JSX. Pass the t function as a prop or via \`useTranslation()\`.
+10. **Test with a pseudo-locale** that adds 40% length and accents, e.g. "[Ŝīgņ īņ — pseudo length test]". Snapshot must still fit.
+11. **Icon + text:** wrap the icon in a fixed-size shrink-0 element: \`<Icon className="h-4 w-4 shrink-0" />\`, then text in \`<span className="truncate">\`.
+`,
+    flutter: `## i18n & long-text safety (CRITICAL)
+
+Generated Flutter must tolerate translations that grow 30–80% (DE/FI/RU) or wrap differently (CJK, RTL). Follow every rule:
+
+1. **Text in \`Row\` must be wrapped in \`Expanded\` or \`Flexible\`.** Bare \`Text\` next to siblings in a Row overflows when translated.
+2. **Always set \`maxLines\` and \`overflow\`:** \`Text(s, maxLines: 1, overflow: TextOverflow.ellipsis)\`. For multi-line use the same with \`maxLines: N\`.
+3. **\`softWrap: true\`** (the default) — never disable unless you have a single-line UI element.
+4. **Fixed sizes on containers with text are forbidden.** Use \`ConstrainedBox(constraints: BoxConstraints(minHeight: ...))\` or \`IntrinsicHeight\`.
+5. **For text that must fit a fixed area:** add the \`auto_size_text\` package (\`AutoSizeText(s, maxLines: 1, minFontSize: 12)\`). Document the dependency.
+6. **RTL-safe:** use \`EdgeInsetsDirectional.only(start: ..., end: ...)\` and \`AlignmentDirectional\`, NOT \`EdgeInsets.only(left:, right:)\`. Read \`Directionality.of(context)\` when manual handling is needed.
+7. **Use \`TextAlign.start\`/\`TextAlign.end\`** instead of \`left\`/\`right\`.
+8. **Icon + text in Row:** \`SizedBox(width: 24, height: 24, child: Icon(...))\` then \`Expanded(child: Text(...))\` — do not put the icon in an Expanded.
+9. **All user-visible strings via \`AppLocalizations.of(context)!.*\`.** Strings live in \`lib/l10n/intl_*.arb\`. No literals in widget code.
+10. **Add Golden tests with the longest known translation** for every screen widget.
+11. **Buttons:** rely on \`MaterialButton\` / \`ElevatedButton\` default sizing; don't pin \`width\` unless mandated.
+`,
+    raw: "",
+  };
+
   const TEMPLATES = {
-    android_xml: `# Task — Android XML layout generation
+    android_xml: `{{ruleFileSection}}# Task — Android XML layout generation
 
 You are a senior Android engineer (10+ years, Kotlin + XML). Produce production-grade code from the Figma extraction below.
 
@@ -35,18 +130,20 @@ You are a senior Android engineer (10+ years, Kotlin + XML). Produce production-
 Return each file as a separate code block, prefixed with its full project path. Required files:
 
 1. \`app/src/main/res/layout/<screen_name>.xml\`
-2. \`app/src/main/res/values/colors.xml\` — only NEW colors (don't redefine existing ones; assume Material3 theme is already set up)
+2. \`app/src/main/res/values/colors.xml\` — only NEW colors (don't redefine existing ones)
 3. \`app/src/main/res/values/dimens.xml\` — extracted dimensions
-4. \`app/src/main/res/values/styles.xml\` — repeated text styles as \`<style>\` entries with \`parent="TextAppearance.Material3.*"\` where applicable
+4. \`app/src/main/res/values/styles.xml\` — repeated text styles
 5. \`app/src/main/res/values/strings.xml\` — all user-visible strings
-6. **Asset list** — bullet list of drawable resources that must be exported manually from Figma (icons, illustrations) with suggested filenames
+6. **Asset list** — drawable resources that must be exported manually from Figma
+
+{{i18nRules}}
 
 ## Rules
 - Match Figma component instances to Material3 widgets when possible (MaterialButton, TextInputLayout, MaterialCardView, etc.)
-- For nodes typed \`INSTANCE\`, prefer \`<include layout="@layout/..."/>\` and emit a separate layout file for the included view
-- Use \`android:elevation\` for simple shadows; fall back to layer-list drawables only for complex shadow specs
-- Make all text accessible: \`android:contentDescription\` on ImageViews, \`android:importantForAccessibility\` where appropriate
-- Do not invent colors or sizes — use the values from the JSON below
+- For nodes typed \`INSTANCE\`, prefer \`<include layout="@layout/..."/>\` and emit a separate layout file
+- Use \`android:elevation\` for simple shadows; fall back to layer-list drawables for complex shadow specs
+- Make all text accessible: \`android:contentDescription\` on ImageViews, semantic \`android:labelFor\` where appropriate
+- Do not invent colors or sizes — use values from the JSON below
 
 ## Figma extraction (Android-optimized JSON)
 
@@ -61,10 +158,10 @@ Return each file as a separate code block, prefixed with its full project path. 
 {{notes}}
 
 ## Final checklist
-Before responding, verify: (a) every node in the JSON is represented, (b) constraint relationships are stated explicitly, (c) no hardcoded strings remain in the layout XML, (d) colors / dimens / styles are properly extracted to resource files.
+Before responding, verify: (a) every text node in the JSON is wired to \`@string/\`, (b) every horizontal sibling pair with text has a flex strategy (weight or constrained chain), (c) every single-line text has \`maxLines="1"\` + \`ellipsize="end"\`, (d) every \`*Start/*End\` attribute is used in place of \`*Left/*Right\`, (e) project rule file conventions are honored.
 `,
 
-    compose: `# Task — Jetpack Compose UI generation
+    compose: `{{ruleFileSection}}# Task — Jetpack Compose UI generation
 
 You are a senior Android engineer specialized in Jetpack Compose. Produce production-grade Compose code from the Figma extraction below.
 
@@ -74,24 +171,26 @@ You are a senior Android engineer specialized in Jetpack Compose. Produce produc
 - Compose Material3
 - Min SDK: 24
 - State hoisting + stateless composables
-- Theme tokens via MaterialTheme.colorScheme / typography / shapes when they map cleanly; otherwise pass explicit values
+- Theme tokens via MaterialTheme.colorScheme / typography / shapes when they map cleanly
 
 ## Output format
-Return each file as a separate code block with its full path:
+Return each file as a separate code block with full path:
 
 1. \`ui/screens/<ScreenName>Screen.kt\` — top-level composable
-2. \`ui/components/*.kt\` — one file per reusable component (one per Figma COMPONENT or INSTANCE-of-same-component)
+2. \`ui/components/*.kt\` — one file per reusable component
 3. \`ui/theme/Color.kt\` — new colors only
 4. \`ui/theme/Type.kt\` — text style additions if any
-5. \`ui/preview/<ScreenName>Previews.kt\` — \`@Preview\` functions (Light + Dark, phone + tablet)
-6. **Asset list** — drawables / vectors to be added to \`res/drawable/\`
+5. \`ui/preview/<ScreenName>Previews.kt\` — \`@Preview\` (Light + Dark, phone + tablet, **plus a long-text locale**)
+6. **Asset list** — drawables / vectors to add to \`res/drawable/\`
+
+{{i18nRules}}
 
 ## Rules
-- Use \`Modifier\` chaining in canonical order: layout → behavior → appearance
+- Modifier chain order: layout → behavior → appearance
 - Prefer \`Spacer\` + \`Modifier.padding\` over magic margins
-- For auto-layout HORIZONTAL → \`Row\`, VERTICAL → \`Column\`, NONE → \`Box\` (with Modifier.fillMaxSize + child alignment) or \`ConstraintLayout\`
+- For auto-layout HORIZONTAL → \`Row\`, VERTICAL → \`Column\`, NONE → \`Box\` or \`ConstraintLayout\`
 - INSTANCE nodes → invoke a dedicated composable
-- All hardcoded text strings: extract to \`stringResource(R.string.*)\`
+- All hardcoded text strings: \`stringResource(R.string.*)\`
 - No \`!!\` or unchecked casts
 
 ## Figma extraction (cleaned JSON)
@@ -107,9 +206,9 @@ Return each file as a separate code block with its full path:
 {{notes}}
 `,
 
-    swiftui: `# Task — SwiftUI view generation
+    swiftui: `{{ruleFileSection}}# Task — SwiftUI view generation
 
-You are a senior iOS engineer with deep SwiftUI experience. Produce production-grade SwiftUI code from the Figma extraction below.
+You are a senior iOS engineer with deep SwiftUI experience. Produce production-grade SwiftUI code.
 
 ## Target stack
 - Swift 5.9+, SwiftUI
@@ -118,22 +217,22 @@ You are a senior iOS engineer with deep SwiftUI experience. Produce production-g
 - Localization via String catalogs / \`LocalizedStringKey\`
 
 ## Output format
-Return each file as a separate code block with its full path:
+Return each file as a separate code block with full path:
 
 1. \`Views/<Name>View.swift\` — main screen
-2. \`Components/*.swift\` — one file per reusable subview
+2. \`Components/*.swift\` — reusable subviews
 3. \`Theme/Colors.swift\` — color definitions (asset catalog references preferred)
 4. \`Theme/Typography.swift\` — text styles as \`Font\` extensions
-5. \`Previews/<Name>Previews.swift\` — \`#Preview\` blocks (Light + Dark)
+5. \`Previews/<Name>Previews.swift\` — \`#Preview\` blocks (Light + Dark, **plus \`de\` locale with long text**)
+
+{{i18nRules}}
 
 ## Rules
-- Map Figma HORIZONTAL auto-layout → \`HStack\`, VERTICAL → \`VStack\`, NONE → \`ZStack\` or \`overlay/background\`
+- HORIZONTAL auto-layout → \`HStack\`, VERTICAL → \`VStack\`, NONE → \`ZStack\` or \`overlay/background\`
 - Use \`spacing:\` parameter from auto-layout itemSpacing
-- Padding via \`.padding(.init(top:, leading:, bottom:, trailing:))\`
 - Corner radius via \`.clipShape(RoundedRectangle(cornerRadius:))\`
 - Shadows via \`.shadow(color:radius:x:y:)\`
 - INSTANCE nodes → dedicated \`View\` struct
-- All strings localized
 
 ## Figma extraction (cleaned JSON)
 
@@ -148,32 +247,33 @@ Return each file as a separate code block with its full path:
 {{notes}}
 `,
 
-    react_tsx: `# Task — React + Tailwind component generation
+    react_tsx: `{{ruleFileSection}}# Task — React + Tailwind component generation
 
-You are a senior frontend engineer. Produce production-grade React + TypeScript code from the Figma extraction below.
+You are a senior frontend engineer. Produce production-grade React + TypeScript code.
 
 ## Target stack
 - React 18 + TypeScript (strict)
 - Tailwind CSS v3.x
 - Headless UI / Radix primitives for interactive components
 - Accessibility: WCAG 2.1 AA
-- No inline styles unless absolutely necessary (use Tailwind \`arbitrary values\` for one-off design tokens)
+- No inline styles unless absolutely necessary
 
 ## Output format
-Return each file as a separate code block with its full path:
+Return each file as a separate code block with full path:
 
 1. \`src/components/<Name>/<Name>.tsx\`
 2. \`src/components/<Name>/index.ts\` — barrel export
-3. \`tailwind.config.ts\` — additions to the theme (colors, fontFamily, spacing) only if needed; otherwise mark as "no changes"
+3. \`tailwind.config.ts\` — additions to the theme; mark as "no changes" if none
 4. Subcomponents under \`src/components/<Name>/parts/*.tsx\`
+
+{{i18nRules}}
 
 ## Rules
 - Strongly typed Props interfaces, exported
-- Use Tailwind's spacing scale; fall back to arbitrary values (\`pt-[18px]\`) only when the design demands it
-- Auto-layout HORIZONTAL → \`flex flex-row\`, VERTICAL → \`flex flex-col\` with \`gap-*\` for itemSpacing
-- Corner radius → \`rounded-*\` (or arbitrary)
-- Map colors to Tailwind theme extensions, give them semantic names (e.g. \`brand.500\`)
-- All text content as props; never hardcode user-visible strings
+- Use Tailwind's spacing scale; fall back to arbitrary values only when justified
+- Auto-layout HORIZONTAL → \`flex flex-row\`, VERTICAL → \`flex flex-col\` with \`gap-*\`
+- Corner radius → \`rounded-*\`
+- Map colors to Tailwind theme extensions with semantic names
 
 ## Figma extraction (cleaned JSON)
 
@@ -188,9 +288,9 @@ Return each file as a separate code block with its full path:
 {{notes}}
 `,
 
-    flutter: `# Task — Flutter widget generation
+    flutter: `{{ruleFileSection}}# Task — Flutter widget generation
 
-You are a senior Flutter engineer. Produce production-grade Dart code from the Figma extraction below.
+You are a senior Flutter engineer. Produce production-grade Dart code.
 
 ## Target stack
 - Flutter 3.16+, Dart 3+
@@ -199,22 +299,21 @@ You are a senior Flutter engineer. Produce production-grade Dart code from the F
 - No third-party dependencies unless strictly necessary
 
 ## Output format
-Return each file as a separate code block with its full path:
+Return each file as a separate code block with full path:
 
-1. \`lib/screens/<name>_screen.dart\` — main screen widget
-2. \`lib/widgets/*.dart\` — one file per reusable widget
+1. \`lib/screens/<name>_screen.dart\`
+2. \`lib/widgets/*.dart\` — reusable widgets
 3. \`lib/theme/colors.dart\` — color additions
 4. \`lib/theme/typography.dart\` — text style additions
 5. \`lib/l10n/intl_en.arb\` snippet — string additions
 
+{{i18nRules}}
+
 ## Rules
 - StatelessWidget by default; StatefulWidget only when state is needed
-- Auto-layout HORIZONTAL → \`Row\`, VERTICAL → \`Column\`, NONE → \`Stack\`
-- itemSpacing → \`SizedBox\` between children OR \`spacing:\` once it lands
-- Use \`Theme.of(context).colorScheme.*\` when colors map cleanly; otherwise explicit
-- Constants in dp (Flutter logical pixels = Figma px at 1x)
+- HORIZONTAL auto-layout → \`Row\`, VERTICAL → \`Column\`, NONE → \`Stack\`
+- Use \`Theme.of(context).colorScheme.*\` when colors map cleanly
 - Const constructors wherever possible
-- All user-visible strings via \`AppLocalizations.of(context)!.*\`
 
 ## Figma extraction (cleaned JSON)
 
@@ -229,7 +328,7 @@ Return each file as a separate code block with its full path:
 {{notes}}
 `,
 
-    raw: `# Task — UI code generation from Figma data
+    raw: `{{ruleFileSection}}# Task — UI code generation from Figma data
 
 Below is a cleaned extraction of a Figma node. Generate UI code from it.
 
@@ -256,9 +355,13 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
     if (!m) throw new Error("URL Figma không hợp lệ");
     const fileKey = m[1];
     const nodeMatch = url.match(/node-id=([^&]+)/);
-    const nodeId = nodeMatch ? decodeURIComponent(nodeMatch[1]).replace(/-/g, ":") : null;
+    const nodeId = nodeMatch
+      ? decodeURIComponent(nodeMatch[1]).replace(/-/g, ":")
+      : null;
     if (!nodeId) {
-      throw new Error("URL phải chứa node-id (chọn 1 frame trong Figma rồi copy link)");
+      throw new Error(
+        "URL phải chứa node-id — chọn 1 frame trong Figma rồi copy link"
+      );
     }
     return { fileKey, nodeId };
   }
@@ -274,7 +377,7 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
     }
     const data = await res.json();
     const nodeData = data.nodes?.[nodeId];
-    if (!nodeData) throw new Error(`Không tìm thấy node ${nodeId} trong file`);
+    if (!nodeData) throw new Error(`Không tìm thấy node ${nodeId}`);
     return nodeData.document;
   }
 
@@ -295,7 +398,7 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
   }
 
   // ===================================================================
-  // CLEANER — Figma node tree → Android-friendly minimal tree
+  // CLEANER
   // ===================================================================
 
   const LAYOUT_MAP = {
@@ -303,7 +406,6 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
     VERTICAL: "LinearLayout(vertical) / Column",
     NONE: "FrameLayout / Box / ConstraintLayout",
   };
-
   const ALIGN_MAP = {
     MIN: "start",
     CENTER: "center",
@@ -318,23 +420,37 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
     const b = Math.round((c.b || 0) * 255);
     const a = (c.a ?? 1) * opacity;
     const hex = (n) => n.toString(16).padStart(2, "0").toUpperCase();
-    if (a < 0.999) return `#${hex(Math.round(a * 255))}${hex(r)}${hex(g)}${hex(b)}`;
+    if (a < 0.999)
+      return `#${hex(Math.round(a * 255))}${hex(r)}${hex(g)}${hex(b)}`;
     return `#${hex(r)}${hex(g)}${hex(b)}`;
   }
-
   function px(n) {
     return `${Math.round(n)}dp`;
   }
 
+  // Heuristic: text that's just digits / symbols / single chars is rarely translated
+  function isTranslatableText(s) {
+    if (!s || typeof s !== "string") return false;
+    const trimmed = s.trim();
+    if (!trimmed) return false;
+    if (trimmed.length < 2) return false;
+    // Pure digits / decimals / currency-like
+    if (/^[\d\s.,$€£¥%+\-/:]+$/.test(trimmed)) return false;
+    // Single non-letter symbols
+    if (/^[^\p{L}]+$/u.test(trimmed)) return false;
+    return true;
+  }
+
   class Cleaner {
     constructor() {
-      this.colors = new Map(); // hex -> name suggestion
-      this.textStyles = []; // dedup'd
+      this.colors = new Map();
+      this.textStyles = [];
+      this.translatableCount = 0;
+      this.horizontalContainerCount = 0;
     }
 
     trackColor(hex, hint) {
-      if (!hex) return;
-      if (this.colors.has(hex)) return;
+      if (!hex || this.colors.has(hex)) return;
       const slug =
         (hint || "color")
           .toLowerCase()
@@ -344,14 +460,12 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
       this.colors.set(hex, slug);
     }
 
-    clean(node, depth = 0) {
+    clean(node, depth = 0, parentLayoutMode = null) {
       if (!node || node.visible === false) return null;
-      if (depth > 14) return { name: node.name, type: node.type, _truncated: true };
+      if (depth > 14)
+        return { name: node.name, type: node.type, _truncated: true };
 
-      const out = {
-        name: node.name || "",
-        type: node.type || "",
-      };
+      const out = { name: node.name || "", type: node.type || "" };
 
       const bb = node.absoluteBoundingBox;
       if (bb) {
@@ -363,8 +477,8 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         };
       }
 
-      // Auto-layout
       if (node.layoutMode && node.layoutMode !== "NONE") {
+        if (node.layoutMode === "HORIZONTAL") this.horizontalContainerCount++;
         out.layout = {
           mapping: LAYOUT_MAP[node.layoutMode] || "LinearLayout",
           orientation: node.layoutMode.toLowerCase(),
@@ -375,12 +489,13 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
             right: px(node.paddingRight || 0),
             bottom: px(node.paddingBottom || 0),
           },
-          main_align: ALIGN_MAP[node.primaryAxisAlignItems || "MIN"] || "start",
-          cross_align: ALIGN_MAP[node.counterAxisAlignItems || "MIN"] || "start",
+          main_align:
+            ALIGN_MAP[node.primaryAxisAlignItems || "MIN"] || "start",
+          cross_align:
+            ALIGN_MAP[node.counterAxisAlignItems || "MIN"] || "start",
         };
       }
 
-      // Fills
       const fills = (node.fills || []).filter((f) => f.visible !== false);
       for (const f of fills) {
         if (f.type === "SOLID") {
@@ -408,7 +523,6 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         }
       }
 
-      // Strokes
       const strokes = (node.strokes || []).filter((s) => s.visible !== false);
       if (strokes.length && strokes[0].type === "SOLID") {
         const hex = rgbaToHex(strokes[0].color, strokes[0].opacity ?? 1);
@@ -419,10 +533,9 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         this.trackColor(hex, (node.name || "") + "_border");
       }
 
-      // Corner radius
-      if (typeof node.cornerRadius === "number") {
+      if (typeof node.cornerRadius === "number")
         out.corner_radius = px(node.cornerRadius);
-      } else if (Array.isArray(node.rectangleCornerRadii)) {
+      else if (Array.isArray(node.rectangleCornerRadii)) {
         const [tl, tr, br, bl] = node.rectangleCornerRadii;
         out.corner_radius = {
           tl: px(tl),
@@ -432,7 +545,6 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         };
       }
 
-      // Effects (shadow)
       const shadows = (node.effects || [])
         .filter((e) => e.visible !== false)
         .filter((e) => e.type === "DROP_SHADOW" || e.type === "INNER_SHADOW")
@@ -445,7 +557,6 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         }));
       if (shadows.length) out.shadows = shadows;
 
-      // Text
       if (node.type === "TEXT") {
         const s = node.style || {};
         const tf = (node.fills || [])[0];
@@ -454,8 +565,16 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
           color = rgbaToHex(tf.color, tf.opacity ?? 1);
           this.trackColor(color, (node.name || "") + "_text");
         }
+        const text = node.characters || "";
+        const translatable = isTranslatableText(text);
+        if (translatable) this.translatableCount++;
+
         const ts = {
-          text: node.characters || "",
+          text,
+          is_translatable: translatable,
+          // Hint to AI: if true, this text sits next to siblings horizontally
+          // → must use weight/flex strategy, never wrap_content with siblings.
+          in_horizontal_container: parentLayoutMode === "HORIZONTAL",
           fontFamily: s.fontFamily || null,
           fontSize: s.fontSize ? Math.round(s.fontSize) : null,
           fontWeight: s.fontWeight || null,
@@ -466,14 +585,20 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
           color,
         };
         out.text = ts;
+
         const sig = `${ts.fontFamily}|${ts.fontSize}|${ts.fontWeight}|${ts.color}`;
         if (!this.textStyles.find((t) => t._sig === sig)) {
-          this.textStyles.push({ ...ts, _sig: sig });
+          this.textStyles.push({
+            fontFamily: ts.fontFamily,
+            fontSize: ts.fontSize,
+            fontWeight: ts.fontWeight,
+            color: ts.color,
+            _sig: sig,
+          });
         }
-        delete out.background; // fill of TEXT is text color, not bg
+        delete out.background;
       }
 
-      // Component refs
       if (node.type === "INSTANCE") {
         out.instance_of = node.componentId || null;
         out.hint = "reuse via <include/> or dedicated component";
@@ -481,7 +606,6 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         out.hint = "Figma component — emit as separate file";
       }
 
-      // Vectors / icons — don't recurse; mark for asset export
       const VECTOR_TYPES = [
         "VECTOR",
         "BOOLEAN_OPERATION",
@@ -495,13 +619,13 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
         return out;
       }
 
-      // Recurse
       const kids = node.children || [];
       if (kids.length) {
-        const cleaned = kids.map((c) => this.clean(c, depth + 1)).filter(Boolean);
+        const cleaned = kids
+          .map((c) => this.clean(c, depth + 1, node.layoutMode || null))
+          .filter(Boolean);
         if (cleaned.length) out.children = cleaned;
       }
-
       return out;
     }
 
@@ -511,7 +635,16 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
           name,
           value: hex,
         })),
-        text_styles: this.textStyles.map(({ _sig, ...rest }) => rest),
+        text_styles: this.textStyles.map(({ _sig, ...r }) => r),
+      };
+    }
+
+    summary() {
+      return {
+        translatable_text_nodes: this.translatableCount,
+        horizontal_containers: this.horizontalContainerCount,
+        unique_colors: this.colors.size,
+        unique_text_styles: this.textStyles.length,
       };
     }
   }
@@ -520,14 +653,45 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
   // PROMPT BUILDER
   // ===================================================================
 
-  function buildPrompt({ cleaned, tokens, raw, platform, notes, imageFiles, customTemplate }) {
-    const tpl = customTemplate?.trim() || TEMPLATES[platform] || TEMPLATES.raw;
+  function buildRuleFileSection(ruleFile) {
+    if (!ruleFile || !ruleFile.trim()) return "";
+    const f = ruleFile.trim();
+    return `## ⚠️ CRITICAL — Read project conventions first
+
+Before generating ANY code or making any decision, **read carefully** the file:
+
+\`${f}\`
+
+It is located in the project root. This file defines team-wide conventions (naming, structure, accessibility, theming, dependency-injection patterns, code style) that **supersede every default suggested in this prompt**. Follow ALL rules stated there.
+
+**If the file does not exist or is unreadable:** stop immediately and tell the user — do not guess.
+
+---
+
+`;
+  }
+
+  function buildPrompt({
+    cleaned,
+    tokens,
+    summary,
+    raw,
+    platform,
+    notes,
+    imageFiles,
+    customTemplate,
+    ruleFile,
+    i18nMode,
+  }) {
+    const tpl =
+      customTemplate?.trim() || TEMPLATES[platform] || TEMPLATES.raw;
 
     const enriched = {
       _meta: {
         source: "Figma Prompt Forge",
         version: PROMPT_VERSION,
         generated_at: new Date().toISOString(),
+        summary,
       },
       design_tokens: tokens,
       tree: cleaned,
@@ -539,29 +703,34 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
     let imagesSection = "";
     if (imageFiles && imageFiles.length) {
       const list = imageFiles
-        .map((f, i) => `- \`./${f.name}\` — ${describeImage(f, i)}`)
+        .map((f) => {
+          const kb = (f.size / 1024).toFixed(1);
+          return `- \`./${f.name}\` — ${f.type || "image"} · ${kb} KB`;
+        })
         .join("\n");
       imagesSection = `## Reference images
 
-The following images are attached alongside this prompt file. Examine them to verify visual fidelity (color exactness, spacing, hierarchy) — the JSON above gives structure, the images give ground truth.
+The following images are attached alongside this prompt. Examine them to verify visual fidelity — the JSON gives structure, the images give ground truth.
 
 ${list}
 `;
     }
 
     const notesStr =
-      notes && notes.trim() ? notes.trim() : "_(none provided — use sensible defaults)_";
+      notes && notes.trim()
+        ? notes.trim()
+        : "_(none provided — use sensible defaults from the rule file)_";
+
+    const i18nRulesStr = i18nMode ? I18N_RULES[platform] || "" : "";
 
     return tpl
+      .replace(/\{\{ruleFileSection\}\}/g, buildRuleFileSection(ruleFile))
+      .replace(/\{\{ruleFile\}\}/g, ruleFile || "")
+      .replace(/\{\{i18nRules\}\}/g, i18nRulesStr)
       .replace(/\{\{json\}\}/g, jsonStr)
       .replace(/\{\{notes\}\}/g, notesStr)
       .replace(/\{\{images\}\}/g, imagesSection)
       .replace(/\{\{rawJson\}\}/g, raw ? JSON.stringify(raw, null, 2) : "");
-  }
-
-  function describeImage(file, i) {
-    const kb = (file.size / 1024).toFixed(1);
-    return `${file.type || "image"} · ${kb} KB`;
   }
 
   // ===================================================================
@@ -604,7 +773,7 @@ ${list}
     el.className = "status" + (kind ? ` is-${kind}` : "");
   }
 
-  function showOutput(text, fileBase, hasImagesOrScreenshot) {
+  function showOutput(text, fileBase, hasImages) {
     $("#outputEmpty").hidden = true;
     const pre = $("#outputPre");
     pre.hidden = false;
@@ -612,14 +781,15 @@ ${list}
     $("#exportBar").hidden = false;
 
     const chars = text.length;
-    const tokens = Math.round(chars / 4); // rough estimate
-    $("#exportSize").textContent = chars.toLocaleString();
-    $("#exportTokens").textContent = `~${tokens.toLocaleString()}`;
-    $("#outputMeta").textContent = `${chars.toLocaleString()} chars · ~${tokens.toLocaleString()} tokens`;
+    const tokens = Math.round(chars / 4);
+    $("#exportSize").textContent = chars.toLocaleString() + " chars";
+    $("#exportTokens").textContent = "~" + tokens.toLocaleString() + " tok";
+    $("#outputMeta").textContent =
+      chars.toLocaleString() + " chars · ~" + tokens.toLocaleString() + " tokens";
 
-    $("#downloadLabel").textContent = hasImagesOrScreenshot
-      ? "download .zip"
-      : "download .txt";
+    $("#downloadLabel").textContent = hasImages
+      ? "Download .zip"
+      : "Download .txt";
 
     $("#downloadBtn").dataset.fileBase = fileBase;
   }
@@ -633,7 +803,7 @@ ${list}
   }
 
   // --- Image handling -------------------------------------------------
-  const imageStore = []; // File[]
+  const imageStore = [];
 
   function renderThumbs() {
     const wrap = $("#thumbs");
@@ -667,19 +837,41 @@ ${list}
   function addFiles(files) {
     for (const f of files) {
       if (!f.type.startsWith("image/")) continue;
-      // sanitize filename
       const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const renamed = safe === f.name ? f : new File([f], safe, { type: f.type });
+      const renamed =
+        safe === f.name ? f : new File([f], safe, { type: f.type });
       imageStore.push(renamed);
     }
     renderThumbs();
+  }
+
+  // --- Rule file per-platform memory ---------------------------------
+  function loadRuleFileOverrides() {
+    try {
+      return JSON.parse(localStorage.getItem(RULE_FILE_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+  function saveRuleFileOverride(platform, value) {
+    const all = loadRuleFileOverrides();
+    if (!value || value === DEFAULT_RULE_FILES[platform]) {
+      delete all[platform];
+    } else {
+      all[platform] = value;
+    }
+    localStorage.setItem(RULE_FILE_STORAGE_KEY, JSON.stringify(all));
+  }
+  function getCurrentRuleFile(platform) {
+    const overrides = loadRuleFileOverrides();
+    return overrides[platform] ?? DEFAULT_RULE_FILES[platform] ?? "";
   }
 
   // --- INIT -----------------------------------------------------------
   function init() {
     $("#year").textContent = new Date().getFullYear();
 
-    // Repo link - try to discover from current URL on github pages
+    // Repo link discovery on GitHub Pages
     const host = location.hostname;
     if (host.endsWith("github.io")) {
       const user = host.split(".")[0];
@@ -690,22 +882,31 @@ ${list}
     }
 
     // Restore token
-    const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (saved) {
-      $("#token").value = saved;
+    const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (savedToken) {
+      $("#token").value = savedToken;
       $("#rememberToken").checked = true;
     }
 
-    // Toggle token visibility
+    // Initialize rule file from current platform
+    const initialPlatform = document.querySelector(
+      'input[name="platform"]:checked'
+    ).value;
+    $("#ruleFile").value = getCurrentRuleFile(initialPlatform);
+
+    // Token visibility toggle
     $("#toggleToken").addEventListener("click", () => {
       const inp = $("#token");
-      const btn = $("#toggleToken");
+      const open = $("#eyeOpen");
+      const closed = $("#eyeClosed");
       if (inp.type === "password") {
         inp.type = "text";
-        btn.textContent = "hide";
+        open.hidden = true;
+        closed.hidden = false;
       } else {
         inp.type = "password";
-        btn.textContent = "show";
+        open.hidden = false;
+        closed.hidden = true;
       }
     });
 
@@ -716,6 +917,22 @@ ${list}
       const open = advBtn.getAttribute("aria-expanded") === "true";
       advBtn.setAttribute("aria-expanded", String(!open));
       advBody.hidden = open;
+    });
+
+    // Update rule file placeholder/value when platform changes
+    document.querySelectorAll('input[name="platform"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        const p = r.value;
+        $("#ruleFile").value = getCurrentRuleFile(p);
+        $("#ruleFile").placeholder =
+          DEFAULT_RULE_FILES[p] || "(no rule file)";
+      });
+    });
+
+    // Persist rule file changes per platform
+    $("#ruleFile").addEventListener("change", (e) => {
+      const p = document.querySelector('input[name="platform"]:checked').value;
+      saveRuleFileOverride(p, e.target.value.trim());
     });
 
     // Dropzone
@@ -748,11 +965,15 @@ ${list}
       renderThumbs();
       resetOutput();
       setStatus("", "");
-      const saved2 = localStorage.getItem(TOKEN_STORAGE_KEY);
-      if (saved2) {
-        $("#token").value = saved2;
+      // Restore token + rule file
+      const t = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (t) {
+        $("#token").value = t;
         $("#rememberToken").checked = true;
       }
+      const p = document.querySelector('input[name="platform"]:checked').value;
+      $("#ruleFile").value = getCurrentRuleFile(p);
+      $("#i18nMode").checked = true;
     });
 
     // Copy
@@ -761,9 +982,10 @@ ${list}
       try {
         await navigator.clipboard.writeText(txt);
         const btn = $("#copyBtn");
-        const old = btn.textContent;
-        btn.textContent = "copied ✓";
-        setTimeout(() => (btn.textContent = old), 1400);
+        const span = btn.querySelector("span");
+        const old = span.textContent;
+        span.textContent = "Copied";
+        setTimeout(() => (span.textContent = old), 1400);
       } catch {
         setStatus("Không copy được — trình duyệt chặn clipboard", "error");
       }
@@ -771,10 +993,10 @@ ${list}
 
     // Download
     $("#downloadBtn").addEventListener("click", async () => {
-      const fileBase = $("#downloadBtn").dataset.fileBase || "figma_prompt";
+      const fileBase =
+        $("#downloadBtn").dataset.fileBase || "figma_prompt";
       const txt = $("#outputPre").textContent;
       const hasExtras = imageStore.length > 0;
-
       try {
         if (hasExtras) {
           const blob = await buildZip({
@@ -784,7 +1006,10 @@ ${list}
           });
           triggerDownload(blob, `${fileBase}.zip`);
         } else {
-          triggerDownload(new Blob([txt], { type: "text/plain" }), `${fileBase}.txt`);
+          triggerDownload(
+            new Blob([txt], { type: "text/plain" }),
+            `${fileBase}.txt`
+          );
         }
       } catch (err) {
         setStatus(`Lỗi tải file: ${err.message}`, "error");
@@ -796,9 +1021,13 @@ ${list}
       e.preventDefault();
       const token = $("#token").value.trim();
       const url = $("#url").value.trim();
-      const platform = document.querySelector('input[name="platform"]:checked').value;
+      const platform = document.querySelector(
+        'input[name="platform"]:checked'
+      ).value;
       const notes = $("#notes").value;
       const customTemplate = $("#customTemplate").value;
+      const ruleFile = $("#ruleFile").value.trim();
+      const i18nMode = $("#i18nMode").checked;
       const fetchScreenshot = $("#fetchScreenshot").checked;
       const includeRaw = $("#includeRaw").checked;
       const remember = $("#rememberToken").checked;
@@ -806,39 +1035,41 @@ ${list}
       if (!token) return setStatus("Cần Figma token", "error");
       if (!url) return setStatus("Cần Figma URL", "error");
 
-      // Persist token only if explicit opt-in
       if (remember) {
         localStorage.setItem(TOKEN_STORAGE_KEY, token);
       } else {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
       }
+      saveRuleFileOverride(platform, ruleFile);
 
       const btn = $("#forgeBtn");
       btn.disabled = true;
-      setStatus("fetching figma node…", "loading");
+      setStatus("Fetching Figma node…", "loading");
 
       try {
         const { fileKey, nodeId } = parseFigmaUrl(url);
 
         const node = await fetchNode(token, fileKey, nodeId);
 
-        setStatus("cleaning tree & extracting tokens…", "loading");
+        setStatus("Cleaning tree & extracting tokens…", "loading");
         const cleaner = new Cleaner();
         const cleaned = cleaner.clean(node);
         const designTokens = cleaner.designTokens();
+        const summary = cleaner.summary();
 
-        // Optional screenshot fetch — push into imageStore so it shows in thumbs
-        // and is bundled in the zip naturally.
         if (fetchScreenshot) {
-          setStatus("fetching 2x render…", "loading");
+          setStatus("Fetching 2x render…", "loading");
           const blob = await fetchNodeImage(token, fileKey, nodeId, 2).catch(
             () => null
           );
           if (blob) {
-            const ssName = `${(node.name || "figma").toLowerCase().replace(/[^a-z0-9]+/g, "_")}_render.png`;
-            // Avoid duplicate if user re-runs
+            const ssName = `${(node.name || "figma")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_")}_render.png`;
             if (!imageStore.some((f) => f.name === ssName)) {
-              const ssFile = new File([blob], ssName, { type: "image/png" });
+              const ssFile = new File([blob], ssName, {
+                type: "image/png",
+              });
               imageStore.push(ssFile);
               renderThumbs();
             }
@@ -848,11 +1079,14 @@ ${list}
         const promptText = buildPrompt({
           cleaned,
           tokens: designTokens,
+          summary,
           raw: includeRaw ? node : null,
           platform,
           notes,
           imageFiles: imageStore,
           customTemplate,
+          ruleFile,
+          i18nMode,
         });
 
         const safeName =
@@ -865,14 +1099,19 @@ ${list}
         showOutput(promptText, safeName, imageStore.length > 0);
 
         const rawSize = JSON.stringify(node).length;
-        const cleanSize = JSON.stringify({ design_tokens: designTokens, tree: cleaned })
-          .length;
+        const cleanSize = JSON.stringify({
+          design_tokens: designTokens,
+          tree: cleaned,
+        }).length;
         const saved = Math.max(
           0,
           Math.round((1 - cleanSize / Math.max(rawSize, 1)) * 100)
         );
+        const i18nInfo = i18nMode
+          ? ` · ${summary.translatable_text_nodes} translatable text node(s)`
+          : "";
         setStatus(
-          `done · raw ${rawSize.toLocaleString()} → cleaned ${cleanSize.toLocaleString()} chars (−${saved}%)`,
+          `Done · raw ${rawSize.toLocaleString()} → cleaned ${cleanSize.toLocaleString()} chars (−${saved}%)${i18nInfo}`,
           "success"
         );
       } catch (err) {

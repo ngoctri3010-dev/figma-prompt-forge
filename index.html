@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Figma Prompt Forge — Distill Figma into LLM-ready context</title>
+    <title>Prompt Forge — Figma to LLM context</title>
     <meta
       name="description"
       content="Extract, clean, and convert Figma designs into token-efficient prompts for Claude Code, Codex, and other coding agents."
@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
@@ -24,112 +24,83 @@
     <script defer src="app.js"></script>
   </head>
   <body>
-    <div class="grain" aria-hidden="true"></div>
+    <div class="bg-aurora" aria-hidden="true"></div>
 
     <header class="topbar">
       <div class="topbar__inner">
         <div class="brand">
-          <span class="brand__mark">❋</span>
-          <span class="brand__name">PROMPT FORGE</span>
-          <span class="brand__issue">№ 01</span>
-          <span class="brand__div">/</span>
-          <span class="brand__sub">figma → llm context</span>
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor"/>
+              <circle cx="16.5" cy="16.5" r="3.5" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="brand__name">Prompt&nbsp;Forge</span>
+          <span class="brand__pill">beta</span>
         </div>
         <nav class="topbar__nav">
           <a href="https://github.com" target="_blank" rel="noopener" id="repoLink">
-            source
+            <span>Source</span>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </a>
           <a
             href="https://www.figma.com/developers/api#access-tokens"
             target="_blank"
             rel="noopener"
-            >get token ↗</a
           >
+            <span>Get token</span>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </a>
         </nav>
       </div>
     </header>
 
     <main class="page">
       <section class="hero">
-        <div class="hero__label">
-          <span class="hero__label-ornament">❋</span>
-          FIG. 01 — OVERVIEW
+        <div class="hero__eyebrow">
+          <span class="dot"></span>
+          <span>For Claude Code · Codex · Cursor</span>
         </div>
         <h1 class="hero__title">
-          Stop feeding raw Figma JSON<br />
-          to <em>your coding agent.</em>
+          Stop sending raw Figma JSON<br />
+          to your coding agent.
         </h1>
         <p class="hero__sub">
-          <span class="dropcap">A</span> node-level extractor that produces small,
-          structured prompts. Designed for Claude Code &amp; Codex.
-          <em>Runs entirely in your browser</em> — token stays local.
+          A node-level extractor that turns Figma designs into small, structured prompts your AI can actually use. Runs entirely in your browser. Your token never leaves the page.
         </p>
+
         <div class="hero__stats">
           <div class="stat">
             <div class="stat__num">~92<span class="stat__unit">%</span></div>
-            <div class="stat__lbl">avg. payload reduction</div>
+            <div class="stat__lbl">Payload reduction</div>
           </div>
+          <div class="stat__div" aria-hidden="true"></div>
           <div class="stat">
             <div class="stat__num">0</div>
-            <div class="stat__lbl">servers in the loop</div>
+            <div class="stat__lbl">Servers in the loop</div>
           </div>
+          <div class="stat__div" aria-hidden="true"></div>
           <div class="stat">
             <div class="stat__num">6</div>
-            <div class="stat__lbl">platform targets</div>
+            <div class="stat__lbl">Platform targets</div>
           </div>
         </div>
-        <svg
-          class="hero__seal"
-          viewBox="0 0 120 120"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" stroke-width="1" />
-          <circle cx="60" cy="60" r="48" fill="none" stroke="currentColor" stroke-width="0.5" />
-          <text
-            x="60"
-            y="65"
-            text-anchor="middle"
-            font-family="Instrument Serif"
-            font-style="italic"
-            font-size="20"
-            fill="currentColor"
-          >
-            forge
-          </text>
-          <path
-            d="M 60 6 A 54 54 0 0 1 113 60"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="0.5"
-            id="sealArc"
-          />
-          <text font-family="JetBrains Mono" font-size="6" letter-spacing="2" fill="currentColor">
-            <textPath href="#sealArc" startOffset="50%" text-anchor="middle">
-              FIGMA · LLM CONTEXT · MMXXVI
-            </textPath>
-          </text>
-          <g stroke="currentColor" stroke-width="0.5" fill="none">
-            <line x1="60" y1="20" x2="60" y2="28" />
-            <line x1="60" y1="92" x2="60" y2="100" />
-            <line x1="20" y1="60" x2="28" y2="60" />
-            <line x1="92" y1="60" x2="100" y2="60" />
-          </g>
-        </svg>
       </section>
 
       <section class="workbench">
         <div class="panel panel--input">
           <div class="panel__header">
-            <span class="panel__no">02</span>
-            <h2 class="panel__title">Inputs</h2>
+            <h2 class="panel__title">
+              <span class="panel__num">01</span>
+              Inputs
+            </h2>
           </div>
 
           <form id="forgeForm" class="form" novalidate>
             <fieldset class="field">
               <label class="field__label" for="token">
                 <span class="field__label-text">Figma access token</span>
-                <span class="field__hint">stays in your browser</span>
+                <span class="field__hint">Stored locally only</span>
               </label>
               <div class="input-row">
                 <input
@@ -143,23 +114,31 @@
                 />
                 <button
                   type="button"
-                  class="ghost-btn"
+                  class="ghost-btn ghost-btn--icon"
                   id="toggleToken"
                   aria-label="Toggle visibility"
+                  title="Show / hide"
                 >
-                  show
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeOpen">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeClosed" hidden>
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
                 </button>
               </div>
               <label class="checkbox">
                 <input type="checkbox" id="rememberToken" />
-                <span>Remember on this device (localStorage only)</span>
+                <span>Remember on this device</span>
               </label>
             </fieldset>
 
             <fieldset class="field">
               <label class="field__label" for="url">
                 <span class="field__label-text">Figma node URL</span>
-                <span class="field__hint">must include <code>?node-id=…</code></span>
+                <span class="field__hint">Must include <code>?node-id=</code></span>
               </label>
               <input
                 id="url"
@@ -171,14 +150,13 @@
             </fieldset>
 
             <fieldset class="field">
-              <label class="field__label" for="platform">
+              <label class="field__label">
                 <span class="field__label-text">Target platform</span>
-                <span class="field__hint">determines prompt template</span>
               </label>
               <div class="chip-group" role="radiogroup" aria-label="Target platform">
                 <label class="chip">
                   <input type="radio" name="platform" value="android_xml" checked />
-                  <span>Android · XML</span>
+                  <span>Android XML</span>
                 </label>
                 <label class="chip">
                   <input type="radio" name="platform" value="compose" />
@@ -198,15 +176,15 @@
                 </label>
                 <label class="chip">
                   <input type="radio" name="platform" value="raw" />
-                  <span>Raw / Custom</span>
+                  <span>Raw</span>
                 </label>
               </div>
             </fieldset>
 
             <fieldset class="field">
               <label class="field__label" for="images">
-                <span class="field__label-text">Reference images <em>(optional)</em></span>
-                <span class="field__hint">drop screenshots for visual context</span>
+                <span class="field__label-text">Reference images</span>
+                <span class="field__hint">Optional</span>
               </label>
               <label class="dropzone" id="dropzone">
                 <input
@@ -218,11 +196,13 @@
                   hidden
                 />
                 <div class="dropzone__inner">
-                  <div class="dropzone__icon">↓</div>
+                  <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                  </svg>
                   <div class="dropzone__text">
-                    drag &amp; drop or <span>click to browse</span>
+                    <strong>Drop screenshots here</strong> or click to browse
                   </div>
-                  <div class="dropzone__sub">PNG · JPG · WEBP — multiple files ok</div>
+                  <div class="dropzone__sub">PNG · JPG · WEBP · multiple ok</div>
                 </div>
               </label>
               <div class="thumbs" id="thumbs"></div>
@@ -235,28 +215,38 @@
                 id="advancedToggle"
                 aria-expanded="false"
               >
-                <span class="collapsible__chev">▸</span>
-                <span>Advanced — custom requirements &amp; prompt template</span>
+                <svg class="collapsible__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+                <span>Advanced — rules, custom requirements &amp; template</span>
               </button>
               <div class="collapsible__body" id="advancedBody" hidden>
+                <label class="field__label" for="ruleFile">
+                  <span class="field__label-text">Project rule file</span>
+                  <span class="field__hint">Agent must read this first</span>
+                </label>
+                <input
+                  id="ruleFile"
+                  type="text"
+                  placeholder="SYSTEM_RULE_MCP_FIGMA_ANDROID_XML_FINAL.md"
+                  value="SYSTEM_RULE_MCP_FIGMA_ANDROID_XML_FINAL.md"
+                />
+
                 <label class="field__label" for="notes">
                   <span class="field__label-text">Custom requirements</span>
-                  <span class="field__hint"
-                    >appended verbatim to the prompt</span
-                  >
+                  <span class="field__hint">Appended verbatim</span>
                 </label>
                 <textarea
                   id="notes"
                   rows="4"
-                  placeholder="e.g. Use Material3, min SDK 24, dark theme only, all strings in res/values/strings.xml…"
+                  placeholder="e.g. Use Hilt for DI, min SDK 24, support TalkBack, dark mode only…"
                 ></textarea>
 
                 <label class="field__label" for="customTemplate">
                   <span class="field__label-text">Prompt template override</span>
-                  <span class="field__hint"
-                    >use <code>{{json}}</code>, <code>{{notes}}</code>,
-                    <code>{{images}}</code></span
-                  >
+                  <span class="field__hint">
+                    Use <code>{{json}}</code> <code>{{notes}}</code> <code>{{images}}</code> <code>{{ruleFile}}</code>
+                  </span>
                 </label>
                 <textarea
                   id="customTemplate"
@@ -264,16 +254,17 @@
                   placeholder="Leave empty to use the platform default template."
                 ></textarea>
 
-                <label class="field__label">
-                  <span class="field__label-text">Extras</span>
+                <label class="checkbox">
+                  <input type="checkbox" id="i18nMode" checked />
+                  <span>Include i18n / long-text safety rules</span>
                 </label>
                 <label class="checkbox">
                   <input type="checkbox" id="fetchScreenshot" />
-                  <span>Also fetch a 2x PNG render of the node from Figma</span>
+                  <span>Fetch a 2x PNG render of the node from Figma</span>
                 </label>
                 <label class="checkbox">
                   <input type="checkbox" id="includeRaw" />
-                  <span>Include raw (uncleaned) JSON for comparison</span>
+                  <span>Include raw uncleaned JSON for debugging</span>
                 </label>
               </div>
             </fieldset>
@@ -281,47 +272,65 @@
             <div class="actions">
               <button type="submit" class="primary-btn" id="forgeBtn">
                 <span>Forge prompt</span>
-                <span class="primary-btn__arrow">→</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
               </button>
               <button type="button" class="ghost-btn" id="resetBtn">
-                reset
+                Reset
               </button>
+              <div class="status" id="status" role="status" aria-live="polite"></div>
             </div>
-
-            <div class="status" id="status" role="status" aria-live="polite"></div>
           </form>
         </div>
 
         <div class="panel panel--output">
           <div class="panel__header">
-            <span class="panel__no">03</span>
-            <h2 class="panel__title">Output</h2>
+            <h2 class="panel__title">
+              <span class="panel__num">02</span>
+              Output
+            </h2>
             <div class="panel__meta" id="outputMeta"></div>
           </div>
 
           <div class="output" id="output">
             <div class="output__empty" id="outputEmpty">
-              <div class="output__empty-mark">◇</div>
-              <p>
-                <em>Awaiting input.</em><br />
-                The forged prompt will appear here.
-              </p>
+              <svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="output__empty-icon">
+                <rect x="8" y="8" width="48" height="48" rx="4"/>
+                <line x1="8" y1="20" x2="56" y2="20"/>
+                <line x1="14" y1="14" x2="14" y2="14.01"/>
+                <line x1="20" y1="14" x2="20" y2="14.01"/>
+                <line x1="26" y1="14" x2="26" y2="14.01"/>
+              </svg>
+              <p class="output__empty-title">Waiting for input</p>
+              <p class="output__empty-sub">Your forged prompt will appear here.</p>
             </div>
             <pre class="output__pre" id="outputPre" hidden></pre>
           </div>
 
           <div class="export" id="exportBar" hidden>
             <div class="export__info">
-              <span class="export__num" id="exportSize">—</span>
-              <span class="export__lbl">chars · approx <span id="exportTokens">—</span> tokens</span>
+              <div class="export__nums">
+                <span class="export__num" id="exportSize">—</span>
+                <span class="export__sep">·</span>
+                <span class="export__num export__num--sub" id="exportTokens">—</span>
+              </div>
+              <div class="export__lbl">chars · approx tokens</div>
             </div>
             <div class="export__actions">
               <button type="button" class="ghost-btn" id="copyBtn">
-                copy
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <span>Copy</span>
               </button>
               <button type="button" class="primary-btn primary-btn--sm" id="downloadBtn">
-                <span id="downloadLabel">download .txt</span>
-                <span class="primary-btn__arrow">↓</span>
+                <span id="downloadLabel">Download .txt</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -329,36 +338,28 @@
       </section>
 
       <section class="docs">
-        <div class="docs__label">
-          <span class="hero__label-ornament">❋</span>
-          FIG. 04 — HANDOFF
-        </div>
-        <h2 class="docs__title"><em>How to use</em> the forged prompt</h2>
+        <h2 class="docs__title">How to use the forged prompt</h2>
+        <p class="docs__sub">Three steps from Figma frame to working code.</p>
         <div class="docs__grid">
           <article class="step">
             <div class="step__num">01</div>
-            <h3>Download</h3>
-            <p>
-              Single <code>.txt</code> file if no images, or a
-              <code>.zip</code> bundle containing the prompt and reference
-              screenshots.
+            <h3 class="step__title">Download</h3>
+            <p class="step__body">
+              Single <code>.txt</code> file when there are no images, or a <code>.zip</code> bundle containing the prompt and reference screenshots.
             </p>
           </article>
           <article class="step">
             <div class="step__num">02</div>
-            <h3>Drop into agent</h3>
-            <p>
-              Open the file in Claude Code or paste into Codex / Cursor. If
-              there are images, drop them next to the prompt — paths are
-              relative.
+            <h3 class="step__title">Drop into agent</h3>
+            <p class="step__body">
+              Open the file in Claude Code or paste into Codex / Cursor. If there are images, drop them next to the prompt — paths are relative.
             </p>
           </article>
           <article class="step">
             <div class="step__num">03</div>
-            <h3>Generate code</h3>
-            <p>
-              The prompt instructs the agent on output structure (file paths,
-              naming, design tokens) so generated code lands ready to commit.
+            <h3 class="step__title">Generate code</h3>
+            <p class="step__body">
+              The prompt instructs the agent to read your project rules first, then generate code that respects file paths, naming, and i18n safety.
             </p>
           </article>
         </div>
@@ -367,11 +368,21 @@
 
     <footer class="footer">
       <div class="footer__inner">
-        <span>© <span id="year"></span> Prompt Forge</span>
-        <span class="footer__div">·</span>
-        <span>no analytics · no backend · no tracking</span>
-        <span class="footer__div">·</span>
-        <span>MIT license</span>
+        <div class="footer__brand">
+          <span class="footer__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor"/><circle cx="16.5" cy="16.5" r="3.5" fill="currentColor"/></svg>
+          </span>
+          <span>Prompt Forge</span>
+        </div>
+        <div class="footer__meta">
+          <span>© <span id="year"></span></span>
+          <span class="footer__div">·</span>
+          <span>No analytics</span>
+          <span class="footer__div">·</span>
+          <span>No backend</span>
+          <span class="footer__div">·</span>
+          <span>MIT license</span>
+        </div>
       </div>
     </footer>
   </body>
