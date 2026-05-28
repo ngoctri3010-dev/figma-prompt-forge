@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Figma Prompt Forge — Distill Figma into LLM-ready context</title>
+    <meta
+      name="description"
+      content="Extract, clean, and convert Figma designs into token-efficient prompts for Claude Code, Codex, and other coding agents."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Geist:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+    ></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <span class="brand__mark">◆</span>
+          <span class="brand__name">PROMPT FORGE</span>
+          <span class="brand__div">/</span>
+          <span class="brand__sub">figma → llm context</span>
+        </div>
+        <nav class="topbar__nav">
+          <a href="https://github.com" target="_blank" rel="noopener" id="repoLink">
+            source
+          </a>
+          <a
+            href="https://www.figma.com/developers/api#access-tokens"
+            target="_blank"
+            rel="noopener"
+            >get token ↗</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="hero__label">FIG. 01 — OVERVIEW</div>
+        <h1 class="hero__title">
+          Stop feeding raw Figma JSON<br />
+          to <em>your coding agent.</em>
+        </h1>
+        <p class="hero__sub">
+          A node-level extractor that produces small, structured prompts.
+          Designed for Claude Code &amp; Codex. Runs entirely in your browser —
+          token stays local.
+        </p>
+        <div class="hero__stats">
+          <div class="stat">
+            <div class="stat__num">~92%</div>
+            <div class="stat__lbl">avg. payload reduction</div>
+          </div>
+          <div class="stat">
+            <div class="stat__num">0</div>
+            <div class="stat__lbl">servers in the loop</div>
+          </div>
+          <div class="stat">
+            <div class="stat__num">5</div>
+            <div class="stat__lbl">platform targets</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="workbench">
+        <div class="panel panel--input">
+          <div class="panel__header">
+            <span class="panel__no">02</span>
+            <h2 class="panel__title">Inputs</h2>
+          </div>
+
+          <form id="forgeForm" class="form" novalidate>
+            <fieldset class="field">
+              <label class="field__label" for="token">
+                <span class="field__label-text">Figma access token</span>
+                <span class="field__hint">stays in your browser</span>
+              </label>
+              <div class="input-row">
+                <input
+                  id="token"
+                  name="token"
+                  type="password"
+                  placeholder="figd_…"
+                  autocomplete="off"
+                  spellcheck="false"
+                  required
+                />
+                <button
+                  type="button"
+                  class="ghost-btn"
+                  id="toggleToken"
+                  aria-label="Toggle visibility"
+                >
+                  show
+                </button>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" id="rememberToken" />
+                <span>Remember on this device (localStorage only)</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="field">
+              <label class="field__label" for="url">
+                <span class="field__label-text">Figma node URL</span>
+                <span class="field__hint">must include <code>?node-id=…</code></span>
+              </label>
+              <input
+                id="url"
+                name="url"
+                type="url"
+                placeholder="https://www.figma.com/design/abc.../File?node-id=42-1234"
+                required
+              />
+            </fieldset>
+
+            <fieldset class="field">
+              <label class="field__label" for="platform">
+                <span class="field__label-text">Target platform</span>
+                <span class="field__hint">determines prompt template</span>
+              </label>
+              <div class="chip-group" role="radiogroup" aria-label="Target platform">
+                <label class="chip">
+                  <input type="radio" name="platform" value="android_xml" checked />
+                  <span>Android · XML</span>
+                </label>
+                <label class="chip">
+                  <input type="radio" name="platform" value="compose" />
+                  <span>Jetpack Compose</span>
+                </label>
+                <label class="chip">
+                  <input type="radio" name="platform" value="swiftui" />
+                  <span>SwiftUI</span>
+                </label>
+                <label class="chip">
+                  <input type="radio" name="platform" value="react_tsx" />
+                  <span>React + Tailwind</span>
+                </label>
+                <label class="chip">
+                  <input type="radio" name="platform" value="flutter" />
+                  <span>Flutter</span>
+                </label>
+                <label class="chip">
+                  <input type="radio" name="platform" value="raw" />
+                  <span>Raw / Custom</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="field">
+              <label class="field__label" for="images">
+                <span class="field__label-text">Reference images <em>(optional)</em></span>
+                <span class="field__hint">drop screenshots for visual context</span>
+              </label>
+              <label class="dropzone" id="dropzone">
+                <input
+                  type="file"
+                  id="images"
+                  name="images"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  hidden
+                />
+                <div class="dropzone__inner">
+                  <div class="dropzone__icon">↓</div>
+                  <div class="dropzone__text">
+                    drag &amp; drop or <span>click to browse</span>
+                  </div>
+                  <div class="dropzone__sub">PNG · JPG · WEBP — multiple files ok</div>
+                </div>
+              </label>
+              <div class="thumbs" id="thumbs"></div>
+            </fieldset>
+
+            <fieldset class="field field--collapsible">
+              <button
+                type="button"
+                class="collapsible__toggle"
+                id="advancedToggle"
+                aria-expanded="false"
+              >
+                <span class="collapsible__chev">▸</span>
+                <span>Advanced — custom requirements &amp; prompt template</span>
+              </button>
+              <div class="collapsible__body" id="advancedBody" hidden>
+                <label class="field__label" for="notes">
+                  <span class="field__label-text">Custom requirements</span>
+                  <span class="field__hint"
+                    >appended verbatim to the prompt</span
+                  >
+                </label>
+                <textarea
+                  id="notes"
+                  rows="4"
+                  placeholder="e.g. Use Material3, min SDK 24, dark theme only, all strings in res/values/strings.xml…"
+                ></textarea>
+
+                <label class="field__label" for="customTemplate">
+                  <span class="field__label-text">Prompt template override</span>
+                  <span class="field__hint"
+                    >use <code>{{json}}</code>, <code>{{notes}}</code>,
+                    <code>{{images}}</code></span
+                  >
+                </label>
+                <textarea
+                  id="customTemplate"
+                  rows="6"
+                  placeholder="Leave empty to use the platform default template."
+                ></textarea>
+
+                <label class="field__label">
+                  <span class="field__label-text">Extras</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="fetchScreenshot" />
+                  <span>Also fetch a 2x PNG render of the node from Figma</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="includeRaw" />
+                  <span>Include raw (uncleaned) JSON for comparison</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="actions">
+              <button type="submit" class="primary-btn" id="forgeBtn">
+                <span>Forge prompt</span>
+                <span class="primary-btn__arrow">→</span>
+              </button>
+              <button type="button" class="ghost-btn" id="resetBtn">
+                reset
+              </button>
+            </div>
+
+            <div class="status" id="status" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div class="panel panel--output">
+          <div class="panel__header">
+            <span class="panel__no">03</span>
+            <h2 class="panel__title">Output</h2>
+            <div class="panel__meta" id="outputMeta"></div>
+          </div>
+
+          <div class="output" id="output">
+            <div class="output__empty" id="outputEmpty">
+              <div class="output__empty-mark">◇</div>
+              <p>
+                <em>Awaiting input.</em><br />
+                The forged prompt will appear here.
+              </p>
+            </div>
+            <pre class="output__pre" id="outputPre" hidden></pre>
+          </div>
+
+          <div class="export" id="exportBar" hidden>
+            <div class="export__info">
+              <span class="export__num" id="exportSize">—</span>
+              <span class="export__lbl">chars · approx <span id="exportTokens">—</span> tokens</span>
+            </div>
+            <div class="export__actions">
+              <button type="button" class="ghost-btn" id="copyBtn">
+                copy
+              </button>
+              <button type="button" class="primary-btn primary-btn--sm" id="downloadBtn">
+                <span id="downloadLabel">download .txt</span>
+                <span class="primary-btn__arrow">↓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="docs">
+        <div class="docs__label">FIG. 04 — HANDOFF</div>
+        <h2 class="docs__title"><em>How to use</em> the forged prompt</h2>
+        <div class="docs__grid">
+          <article class="step">
+            <div class="step__num">01</div>
+            <h3>Download</h3>
+            <p>
+              Single <code>.txt</code> file if no images, or a
+              <code>.zip</code> bundle containing the prompt and reference
+              screenshots.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step__num">02</div>
+            <h3>Drop into agent</h3>
+            <p>
+              Open the file in Claude Code or paste into Codex / Cursor. If
+              there are images, drop them next to the prompt — paths are
+              relative.
+            </p>
+          </article>
+          <article class="step">
+            <div class="step__num">03</div>
+            <h3>Generate code</h3>
+            <p>
+              The prompt instructs the agent on output structure (file paths,
+              naming, design tokens) so generated code lands ready to commit.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <span>© <span id="year"></span> Prompt Forge</span>
+        <span class="footer__div">·</span>
+        <span>no analytics · no backend · no tracking</span>
+        <span class="footer__div">·</span>
+        <span>MIT license</span>
+      </div>
+    </footer>
+  </body>
+</html>
