@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Geist:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
       rel="stylesheet"
     />
 
@@ -29,8 +29,9 @@
     <header class="topbar">
       <div class="topbar__inner">
         <div class="brand">
-          <span class="brand__mark">◆</span>
+          <span class="brand__mark">❋</span>
           <span class="brand__name">PROMPT FORGE</span>
+          <span class="brand__issue">№ 01</span>
           <span class="brand__div">/</span>
           <span class="brand__sub">figma → llm context</span>
         </div>
@@ -50,19 +51,22 @@
 
     <main class="page">
       <section class="hero">
-        <div class="hero__label">FIG. 01 — OVERVIEW</div>
+        <div class="hero__label">
+          <span class="hero__label-ornament">❋</span>
+          FIG. 01 — OVERVIEW
+        </div>
         <h1 class="hero__title">
           Stop feeding raw Figma JSON<br />
           to <em>your coding agent.</em>
         </h1>
         <p class="hero__sub">
-          A node-level extractor that produces small, structured prompts.
-          Designed for Claude Code &amp; Codex. Runs entirely in your browser —
-          token stays local.
+          <span class="dropcap">A</span> node-level extractor that produces small,
+          structured prompts. Designed for Claude Code &amp; Codex.
+          <em>Runs entirely in your browser</em> — token stays local.
         </p>
         <div class="hero__stats">
           <div class="stat">
-            <div class="stat__num">~92%</div>
+            <div class="stat__num">~92<span class="stat__unit">%</span></div>
             <div class="stat__lbl">avg. payload reduction</div>
           </div>
           <div class="stat">
@@ -70,10 +74,48 @@
             <div class="stat__lbl">servers in the loop</div>
           </div>
           <div class="stat">
-            <div class="stat__num">5</div>
+            <div class="stat__num">6</div>
             <div class="stat__lbl">platform targets</div>
           </div>
         </div>
+        <svg
+          class="hero__seal"
+          viewBox="0 0 120 120"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" stroke-width="1" />
+          <circle cx="60" cy="60" r="48" fill="none" stroke="currentColor" stroke-width="0.5" />
+          <text
+            x="60"
+            y="65"
+            text-anchor="middle"
+            font-family="Instrument Serif"
+            font-style="italic"
+            font-size="20"
+            fill="currentColor"
+          >
+            forge
+          </text>
+          <path
+            d="M 60 6 A 54 54 0 0 1 113 60"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.5"
+            id="sealArc"
+          />
+          <text font-family="JetBrains Mono" font-size="6" letter-spacing="2" fill="currentColor">
+            <textPath href="#sealArc" startOffset="50%" text-anchor="middle">
+              FIGMA · LLM CONTEXT · MMXXVI
+            </textPath>
+          </text>
+          <g stroke="currentColor" stroke-width="0.5" fill="none">
+            <line x1="60" y1="20" x2="60" y2="28" />
+            <line x1="60" y1="92" x2="60" y2="100" />
+            <line x1="20" y1="60" x2="28" y2="60" />
+            <line x1="92" y1="60" x2="100" y2="60" />
+          </g>
+        </svg>
       </section>
 
       <section class="workbench">
@@ -287,7 +329,10 @@
       </section>
 
       <section class="docs">
-        <div class="docs__label">FIG. 04 — HANDOFF</div>
+        <div class="docs__label">
+          <span class="hero__label-ornament">❋</span>
+          FIG. 04 — HANDOFF
+        </div>
         <h2 class="docs__title"><em>How to use</em> the forged prompt</h2>
         <div class="docs__grid">
           <article class="step">
