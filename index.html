@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Prompt Forge — Figma to LLM context</title>
+    <title>Prompt Forge - Android prompt workbench</title>
     <meta
       name="description"
-      content="Extract, clean, and convert Figma designs into token-efficient prompts for Claude Code, Codex, and other coding agents."
+      content="Extract, clean, and convert Figma designs into token-efficient prompts for Android XML, Compose, Claude Code, Codex, and other coding agents."
     />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,25 +31,29 @@
         <div class="brand">
           <span class="brand__mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor"/>
-              <circle cx="16.5" cy="16.5" r="3.5" fill="currentColor"/>
+              <path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor" />
+              <circle cx="16.5" cy="16.5" r="3.5" fill="currentColor" />
             </svg>
           </span>
           <span class="brand__name">Prompt&nbsp;Forge</span>
-          <span class="brand__pill">beta</span>
+          <span class="brand__pill">Android</span>
         </div>
         <nav class="topbar__nav">
           <a href="https://github.com" target="_blank" rel="noopener" id="repoLink">
             <span>Source</span>
-            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+              <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
           </a>
           <a
             href="https://www.figma.com/developers/api#access-tokens"
             target="_blank"
             rel="noopener"
           >
-            <span>Get token</span>
-            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Figma token</span>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+              <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
           </a>
         </nav>
       </div>
@@ -57,57 +61,66 @@
 
     <main class="page">
       <section class="hero">
-        <div class="hero__eyebrow">
-          <span class="dot"></span>
-          <span>For Claude Code · Codex · Cursor</span>
+        <div class="hero__copy">
+          <div class="hero__eyebrow">
+            <span class="dot"></span>
+            <span>Android DEV split workbench</span>
+          </div>
+          <h1 class="hero__title">Forge Figma prompts for Android devs.</h1>
+          <p class="hero__sub">
+            A compact input/output console for turning selected Figma nodes into prompts tuned for XML, Compose,
+            Material3 resources, and translation-safe Android UI.
+          </p>
         </div>
-        <h1 class="hero__title">
-          Stop sending raw Figma JSON<br />
-          to your coding agent.
-        </h1>
-        <p class="hero__sub">
-          A node-level extractor that turns Figma designs into small, structured prompts your AI can actually use. Runs entirely in your browser. Your token never leaves the page.
-        </p>
 
-        <div class="hero__stats">
-          <div class="stat">
-            <div class="stat__num">~92<span class="stat__unit">%</span></div>
-            <div class="stat__lbl">Payload reduction</div>
+        <div class="hero__side" aria-label="Android development focus">
+          <div class="hero__stack">
+            <span>ConstraintLayout</span>
+            <span>Material3</span>
+            <span>Compose</span>
+            <span>i18n-safe</span>
           </div>
-          <div class="stat__div" aria-hidden="true"></div>
-          <div class="stat">
-            <div class="stat__num">0</div>
-            <div class="stat__lbl">Servers in the loop</div>
-          </div>
-          <div class="stat__div" aria-hidden="true"></div>
-          <div class="stat">
-            <div class="stat__num">6</div>
-            <div class="stat__lbl">Platform targets</div>
+          <div class="hero__stats">
+            <div class="stat">
+              <div class="stat__num">XML</div>
+              <div class="stat__lbl">Resource-first output</div>
+            </div>
+            <div class="stat__div" aria-hidden="true"></div>
+            <div class="stat">
+              <div class="stat__num">0</div>
+              <div class="stat__lbl">Backend calls beyond Figma</div>
+            </div>
+            <div class="stat__div" aria-hidden="true"></div>
+            <div class="stat">
+              <div class="stat__num">6</div>
+              <div class="stat__lbl">Agent-ready targets</div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="workbench">
+      <section class="workbench" aria-label="Prompt Forge split workbench">
         <div class="panel panel--input">
           <div class="panel__header">
             <h2 class="panel__title">
               <span class="panel__num">01</span>
-              Inputs
+              Figma input
             </h2>
+            <span class="panel__badge">Android-first</span>
           </div>
 
           <form id="forgeForm" class="form" novalidate>
             <fieldset class="field">
               <label class="field__label" for="token">
-                <span class="field__label-text">Figma access token</span>
-                <span class="field__hint">Stored locally only</span>
+                <span class="field__label-text">Figma personal access token</span>
+                <span class="field__hint">Local only</span>
               </label>
               <div class="input-row">
                 <input
                   id="token"
                   name="token"
                   type="password"
-                  placeholder="figd_…"
+                  placeholder="figd_..."
                   autocomplete="off"
                   spellcheck="false"
                   required
@@ -116,16 +129,16 @@
                   type="button"
                   class="ghost-btn ghost-btn--icon"
                   id="toggleToken"
-                  aria-label="Toggle visibility"
-                  title="Show / hide"
+                  aria-label="Toggle token visibility"
+                  title="Show or hide token"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeOpen">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeClosed" hidden>
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
                   </svg>
                 </button>
               </div>
@@ -144,16 +157,16 @@
                 id="url"
                 name="url"
                 type="url"
-                placeholder="https://www.figma.com/design/abc.../File?node-id=42-1234"
+                placeholder="https://www.figma.com/design/abc/File?node-id=42-1234"
                 required
               />
             </fieldset>
 
             <fieldset class="field">
               <label class="field__label">
-                <span class="field__label-text">Target platform</span>
+                <span class="field__label-text">Target stack</span>
               </label>
-              <div class="chip-group" role="radiogroup" aria-label="Target platform">
+              <div class="chip-group" role="radiogroup" aria-label="Target stack">
                 <label class="chip">
                   <input type="radio" name="platform" value="android_xml" checked />
                   <span>Android XML</span>
@@ -197,12 +210,12 @@
                 />
                 <div class="dropzone__inner">
                   <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                   </svg>
                   <div class="dropzone__text">
-                    <strong>Drop screenshots here</strong> or click to browse
+                    <strong>Drop reference screenshots</strong> or click to browse
                   </div>
-                  <div class="dropzone__sub">PNG · JPG · WEBP · multiple ok</div>
+                  <div class="dropzone__sub">PNG / JPG / WEBP / multiple ok</div>
                 </div>
               </label>
               <div class="thumbs" id="thumbs"></div>
@@ -216,14 +229,14 @@
                 aria-expanded="false"
               >
                 <svg class="collapsible__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                  <polyline points="9 18 15 12 9 6"/>
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
-                <span>Advanced — rules, custom requirements &amp; template</span>
+                <span>Advanced - rules, requirements and template</span>
               </button>
               <div class="collapsible__body" id="advancedBody" hidden>
                 <label class="field__label" for="ruleFile">
                   <span class="field__label-text">Project rule file</span>
-                  <span class="field__hint">Agent must read this first</span>
+                  <span class="field__hint">Agent must read first</span>
                 </label>
                 <input
                   id="ruleFile"
@@ -239,7 +252,7 @@
                 <textarea
                   id="notes"
                   rows="4"
-                  placeholder="e.g. Use Hilt for DI, min SDK 24, support TalkBack, dark mode only…"
+                  placeholder="e.g. Use Hilt for DI, min SDK 24, support TalkBack, dark mode only..."
                 ></textarea>
 
                 <label class="field__label" for="customTemplate">
@@ -260,7 +273,7 @@
                 </label>
                 <label class="checkbox">
                   <input type="checkbox" id="fetchScreenshot" />
-                  <span>Fetch a 2x PNG render of the node from Figma</span>
+                  <span>Fetch a 2x PNG render from Figma</span>
                 </label>
                 <label class="checkbox">
                   <input type="checkbox" id="includeRaw" />
@@ -273,8 +286,8 @@
               <button type="submit" class="primary-btn" id="forgeBtn">
                 <span>Forge prompt</span>
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                  <polyline points="12 5 19 12 12 19"/>
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
                 </svg>
               </button>
               <button type="button" class="ghost-btn" id="resetBtn">
@@ -289,7 +302,7 @@
           <div class="panel__header">
             <h2 class="panel__title">
               <span class="panel__num">02</span>
-              Output
+              Prompt output
             </h2>
             <div class="panel__meta" id="outputMeta"></div>
           </div>
@@ -297,14 +310,14 @@
           <div class="output" id="output">
             <div class="output__empty" id="outputEmpty">
               <svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="output__empty-icon">
-                <rect x="8" y="8" width="48" height="48" rx="4"/>
-                <line x1="8" y1="20" x2="56" y2="20"/>
-                <line x1="14" y1="14" x2="14" y2="14.01"/>
-                <line x1="20" y1="14" x2="20" y2="14.01"/>
-                <line x1="26" y1="14" x2="26" y2="14.01"/>
+                <rect x="8" y="8" width="48" height="48" rx="4" />
+                <line x1="8" y1="20" x2="56" y2="20" />
+                <line x1="14" y1="14" x2="14" y2="14.01" />
+                <line x1="20" y1="14" x2="20" y2="14.01" />
+                <line x1="26" y1="14" x2="26" y2="14.01" />
               </svg>
-              <p class="output__empty-title">Waiting for input</p>
-              <p class="output__empty-sub">Your forged prompt will appear here.</p>
+              <p class="output__empty-title">Prompt console idle</p>
+              <p class="output__empty-sub">Fill the split input pane and forge a prompt ready for your coding agent.</p>
             </div>
             <pre class="output__pre" id="outputPre" hidden></pre>
           </div>
@@ -312,24 +325,24 @@
           <div class="export" id="exportBar" hidden>
             <div class="export__info">
               <div class="export__nums">
-                <span class="export__num" id="exportSize">—</span>
-                <span class="export__sep">·</span>
-                <span class="export__num export__num--sub" id="exportTokens">—</span>
+                <span class="export__num" id="exportSize">-</span>
+                <span class="export__sep">/</span>
+                <span class="export__num export__num--sub" id="exportTokens">-</span>
               </div>
-              <div class="export__lbl">chars · approx tokens</div>
+              <div class="export__lbl">chars / approx tokens</div>
             </div>
             <div class="export__actions">
               <button type="button" class="ghost-btn" id="copyBtn">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2"/>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
                 <span>Copy</span>
               </button>
               <button type="button" class="primary-btn primary-btn--sm" id="downloadBtn">
                 <span id="downloadLabel">Download .txt</span>
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                 </svg>
               </button>
             </div>
@@ -338,28 +351,28 @@
       </section>
 
       <section class="docs">
-        <h2 class="docs__title">How to use the forged prompt</h2>
-        <p class="docs__sub">Three steps from Figma frame to working code.</p>
+        <h2 class="docs__title">Android handoff flow</h2>
+        <p class="docs__sub">Three focused steps from selected Figma frame to agent-ready Android implementation.</p>
         <div class="docs__grid">
           <article class="step">
             <div class="step__num">01</div>
             <h3 class="step__title">Download</h3>
             <p class="step__body">
-              Single <code>.txt</code> file when there are no images, or a <code>.zip</code> bundle containing the prompt and reference screenshots.
+              Save a single <code>.txt</code> file, or a <code>.zip</code> bundle when reference screenshots are attached.
             </p>
           </article>
           <article class="step">
             <div class="step__num">02</div>
             <h3 class="step__title">Drop into agent</h3>
             <p class="step__body">
-              Open the file in Claude Code or paste into Codex / Cursor. If there are images, drop them next to the prompt — paths are relative.
+              Open the file in Claude Code or paste into Codex / Cursor. If there are images, keep them next to the prompt.
             </p>
           </article>
           <article class="step">
             <div class="step__num">03</div>
-            <h3 class="step__title">Generate code</h3>
+            <h3 class="step__title">Generate Android code</h3>
             <p class="step__body">
-              The prompt instructs the agent to read your project rules first, then generate code that respects file paths, naming, and i18n safety.
+              The prompt asks the agent to honor project rules, resource naming, i18n safety, and platform-specific layout patterns.
             </p>
           </article>
         </div>
@@ -370,17 +383,20 @@
       <div class="footer__inner">
         <div class="footer__brand">
           <span class="footer__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor"/><circle cx="16.5" cy="16.5" r="3.5" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path d="M4 4h7v7H4V4Zm0 9h7v7H4v-7Zm9-9h7v7h-7V4Z" fill="currentColor" />
+              <circle cx="16.5" cy="16.5" r="3.5" fill="currentColor" />
+            </svg>
           </span>
           <span>Prompt Forge</span>
         </div>
         <div class="footer__meta">
-          <span>© <span id="year"></span></span>
-          <span class="footer__div">·</span>
+          <span>&copy; <span id="year"></span></span>
+          <span class="footer__div">&middot;</span>
           <span>No analytics</span>
-          <span class="footer__div">·</span>
+          <span class="footer__div">&middot;</span>
           <span>No backend</span>
-          <span class="footer__div">·</span>
+          <span class="footer__div">&middot;</span>
           <span>MIT license</span>
         </div>
       </div>
