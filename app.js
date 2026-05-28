@@ -153,6 +153,8 @@ Return each file as a separate code block, prefixed with its full project path. 
 
 {{images}}
 
+{{androidSuggestions}}
+
 ## Additional requirements
 
 {{notes}}
@@ -201,6 +203,8 @@ Return each file as a separate code block with full path:
 
 {{images}}
 
+{{androidSuggestions}}
+
 ## Additional requirements
 
 {{notes}}
@@ -241,6 +245,8 @@ Return each file as a separate code block with full path:
 \`\`\`
 
 {{images}}
+
+{{androidSuggestions}}
 
 ## Additional requirements
 
@@ -283,6 +289,8 @@ Return each file as a separate code block with full path:
 
 {{images}}
 
+{{androidSuggestions}}
+
 ## Additional requirements
 
 {{notes}}
@@ -323,6 +331,8 @@ Return each file as a separate code block with full path:
 
 {{images}}
 
+{{androidSuggestions}}
+
 ## Additional requirements
 
 {{notes}}
@@ -339,6 +349,8 @@ Below is a cleaned extraction of a Figma node. Generate UI code from it.
 \`\`\`
 
 {{images}}
+
+{{androidSuggestions}}
 
 ## Requirements
 
@@ -671,6 +683,107 @@ It is located in the project root. This file defines team-wide conventions (nami
 `;
   }
 
+  function walkCleanTree(node, visit, depth = 0) {
+    if (!node) return;
+    visit(node, depth);
+    (node.children || []).forEach((child) =>
+      walkCleanTree(child, visit, depth + 1)
+    );
+  }
+
+  function buildAndroidSuggestions({ cleaned, tokens, summary, platform }) {
+    if (!["android_xml", "compose"].includes(platform)) return "";
+
+    const stats = {
+      nodes: 0,
+      textNodes: 0,
+      horizontalTextNodes: 0,
+      assets: 0,
+      instances: 0,
+      rounded: 0,
+      shadows: 0,
+      maxDepth: 0,
+      layouts: new Set(),
+    };
+
+    walkCleanTree(cleaned, (node, depth) => {
+      stats.nodes++;
+      stats.maxDepth = Math.max(stats.maxDepth, depth);
+      if (node.layout?.orientation) stats.layouts.add(node.layout.orientation);
+      if (node.text) {
+        stats.textNodes++;
+        if (node.text.in_horizontal_container) stats.horizontalTextNodes++;
+      }
+      if (node.asset || node.background_image) stats.assets++;
+      if (node.instance_of) stats.instances++;
+      if (node.corner_radius) stats.rounded++;
+      if (node.shadows?.length) stats.shadows += node.shadows.length;
+    });
+
+    const root = cleaned || {};
+    const bounds = root.bounds
+      ? `${root.bounds.w}dp x ${root.bounds.h}dp`
+      : "unknown size";
+    const rootLayout = root.layout?.orientation || "freeform / absolute";
+    const colorCount = tokens?.colors?.length ?? summary?.unique_colors ?? 0;
+    const textStyleCount =
+      tokens?.text_styles?.length ?? summary?.unique_text_styles ?? 0;
+    const textCount = summary?.translatable_text_nodes ?? stats.textNodes;
+
+    if (platform === "compose") {
+      return `## Android code suggestions
+
+Use these as implementation hints before writing code:
+
+- Root composable: create a screen-level composable sized from the Figma root (${bounds}); map root layout "${rootLayout}" to Column, Row, Box, or ConstraintLayout as appropriate.
+- State shape: expose a stateless \`@Composable\` with callback parameters; keep ViewModel/repository logic outside this generated UI.
+- Layout safety: ${stats.horizontalTextNodes} text node(s) sit in horizontal containers, so use \`Modifier.weight(1f)\`, \`maxLines\`, and \`TextOverflow.Ellipsis\` where siblings can compete for width.
+- Theme split: map ${colorCount} color token(s) into \`Color.kt\` and ${textStyleCount} text style(s) into Material3 typography extensions.
+- Asset plan: ${stats.assets} image/vector node(s) should become \`res/drawable\` assets; do not recreate complex vectors by hand unless explicitly requested.
+- Component reuse: ${stats.instances} Figma instance(s) should become small reusable composables.
+- Preview coverage: add previews for default, dark mode if supported, and one long-text locale.
+
+Suggested Compose skeleton:
+
+\`\`\`kotlin
+@Composable
+fun GeneratedScreen(
+    modifier: Modifier = Modifier,
+    onAction: (GeneratedAction) -> Unit = {},
+) {
+    // Map the cleaned Figma tree into Material3 components.
+}
+\`\`\`
+`;
+    }
+
+    return `## Android code suggestions
+
+Use these as implementation hints before writing XML/Kotlin:
+
+- Root layout: start from \`ConstraintLayout\` unless the root Figma auto-layout "${rootLayout}" is clearly linear; Figma root size is ${bounds}.
+- Resource split: define ${colorCount} color token(s) in \`colors.xml\`, ${textStyleCount} repeated text style(s) in \`styles.xml\`, and every visible string in \`strings.xml\`.
+- Text safety: ${textCount} translatable text node(s) detected; ${stats.horizontalTextNodes} are inside horizontal containers and need \`0dp\` width + weight or constrained chains.
+- Components: ${stats.instances} Figma instance(s) should become included child layouts or reusable custom views instead of duplicated XML.
+- Assets: ${stats.assets} image/vector node(s) should be exported to \`res/drawable\`; wire \`contentDescription\` for meaningful images.
+- Surface polish: ${stats.rounded} rounded node(s) and ${stats.shadows} shadow effect(s) likely map to \`MaterialCardView\`, shape drawables, or elevation.
+
+Suggested XML skeleton:
+
+\`\`\`xml
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Build from the cleaned Figma tree and extracted resources. -->
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+\`\`\`
+`;
+  }
+
   function buildPrompt({
     cleaned,
     tokens,
@@ -682,6 +795,7 @@ It is located in the project root. This file defines team-wide conventions (nami
     customTemplate,
     ruleFile,
     i18nMode,
+    androidSuggestions,
   }) {
     const tpl =
       customTemplate?.trim() || TEMPLATES[platform] || TEMPLATES.raw;
@@ -722,15 +836,22 @@ ${list}
         : "_(none provided — use sensible defaults from the rule file)_";
 
     const i18nRulesStr = i18nMode ? I18N_RULES[platform] || "" : "";
+    const hasAndroidSuggestionSlot = /\{\{androidSuggestions\}\}/.test(tpl);
 
-    return tpl
+    const rendered = tpl
       .replace(/\{\{ruleFileSection\}\}/g, buildRuleFileSection(ruleFile))
       .replace(/\{\{ruleFile\}\}/g, ruleFile || "")
       .replace(/\{\{i18nRules\}\}/g, i18nRulesStr)
       .replace(/\{\{json\}\}/g, jsonStr)
       .replace(/\{\{notes\}\}/g, notesStr)
       .replace(/\{\{images\}\}/g, imagesSection)
+      .replace(/\{\{androidSuggestions\}\}/g, androidSuggestions || "")
       .replace(/\{\{rawJson\}\}/g, raw ? JSON.stringify(raw, null, 2) : "");
+
+    if (androidSuggestions && !hasAndroidSuggestionSlot) {
+      return `${rendered.trimEnd()}\n\n${androidSuggestions}`;
+    }
+    return rendered;
   }
 
   // ===================================================================
@@ -800,6 +921,31 @@ ${list}
     $("#outputPre").textContent = "";
     $("#exportBar").hidden = true;
     $("#outputMeta").textContent = "";
+    clearFigmaPreview();
+  }
+
+  let currentPreviewUrl = "";
+
+  function clearFigmaPreview() {
+    const wrap = $("#figmaPreview");
+    const img = $("#figmaPreviewImg");
+    if (!wrap || !img) return;
+    if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+    currentPreviewUrl = "";
+    img.removeAttribute("src");
+    wrap.hidden = true;
+  }
+
+  function showFigmaPreview(blob, nodeName) {
+    const wrap = $("#figmaPreview");
+    const img = $("#figmaPreviewImg");
+    if (!wrap || !img || !blob) return;
+    if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+    currentPreviewUrl = URL.createObjectURL(blob);
+    img.src = currentPreviewUrl;
+    $("#figmaPreviewTitle").textContent = nodeName || "Selected node";
+    $("#figmaPreviewMeta").textContent = `${(blob.size / 1024).toFixed(1)} KB`;
+    wrap.hidden = false;
   }
 
   // --- Image handling -------------------------------------------------
@@ -974,6 +1120,8 @@ ${list}
       const p = document.querySelector('input[name="platform"]:checked').value;
       $("#ruleFile").value = getCurrentRuleFile(p);
       $("#i18nMode").checked = true;
+      $("#previewFigma").checked = true;
+      $("#includeAndroidSuggestions").checked = true;
     });
 
     // Copy
@@ -1028,6 +1176,8 @@ ${list}
       const customTemplate = $("#customTemplate").value;
       const ruleFile = $("#ruleFile").value.trim();
       const i18nMode = $("#i18nMode").checked;
+      const previewFigma = $("#previewFigma").checked;
+      const includeAndroidSuggestions = $("#includeAndroidSuggestions").checked;
       const fetchScreenshot = $("#fetchScreenshot").checked;
       const includeRaw = $("#includeRaw").checked;
       const remember = $("#rememberToken").checked;
@@ -1045,6 +1195,7 @@ ${list}
       const btn = $("#forgeBtn");
       btn.disabled = true;
       setStatus("Fetching Figma node…", "loading");
+      clearFigmaPreview();
 
       try {
         const { fileKey, nodeId } = parseFigmaUrl(url);
@@ -1057,17 +1208,21 @@ ${list}
         const designTokens = cleaner.designTokens();
         const summary = cleaner.summary();
 
-        if (fetchScreenshot) {
-          setStatus("Fetching 2x render…", "loading");
-          const blob = await fetchNodeImage(token, fileKey, nodeId, 2).catch(
+        let renderBlob = null;
+        if (previewFigma || fetchScreenshot) {
+          setStatus("Fetching Figma render…", "loading");
+          renderBlob = await fetchNodeImage(token, fileKey, nodeId, 2).catch(
             () => null
           );
-          if (blob) {
+          if (renderBlob && previewFigma) {
+            showFigmaPreview(renderBlob, node.name);
+          }
+          if (renderBlob && fetchScreenshot) {
             const ssName = `${(node.name || "figma")
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, "_")}_render.png`;
             if (!imageStore.some((f) => f.name === ssName)) {
-              const ssFile = new File([blob], ssName, {
+              const ssFile = new File([renderBlob], ssName, {
                 type: "image/png",
               });
               imageStore.push(ssFile);
@@ -1075,6 +1230,15 @@ ${list}
             }
           }
         }
+
+        const androidSuggestions = includeAndroidSuggestions
+          ? buildAndroidSuggestions({
+              cleaned,
+              tokens: designTokens,
+              summary,
+              platform,
+            })
+          : "";
 
         const promptText = buildPrompt({
           cleaned,
@@ -1087,6 +1251,7 @@ ${list}
           customTemplate,
           ruleFile,
           i18nMode,
+          androidSuggestions,
         });
 
         const safeName =

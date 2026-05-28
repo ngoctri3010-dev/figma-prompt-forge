@@ -272,6 +272,14 @@
                   <span>Include i18n / long-text safety rules</span>
                 </label>
                 <label class="checkbox">
+                  <input type="checkbox" id="previewFigma" checked />
+                  <span>Show a live Figma PNG preview in the output pane</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="includeAndroidSuggestions" checked />
+                  <span>Add Android code suggestions to XML / Compose prompts</span>
+                </label>
+                <label class="checkbox">
                   <input type="checkbox" id="fetchScreenshot" />
                   <span>Fetch a 2x PNG render from Figma</span>
                 </label>
@@ -318,6 +326,18 @@
               </svg>
               <p class="output__empty-title">Prompt console idle</p>
               <p class="output__empty-sub">Fill the split input pane and forge a prompt ready for your coding agent.</p>
+            </div>
+            <div class="figma-preview" id="figmaPreview" hidden>
+              <div class="figma-preview__header">
+                <div>
+                  <p class="figma-preview__kicker">Figma preview</p>
+                  <h3 class="figma-preview__title" id="figmaPreviewTitle">Selected node</h3>
+                </div>
+                <span class="figma-preview__meta" id="figmaPreviewMeta">2x PNG</span>
+              </div>
+              <div class="figma-preview__canvas">
+                <img id="figmaPreviewImg" alt="Figma selected node preview" />
+              </div>
             </div>
             <pre class="output__pre" id="outputPre" hidden></pre>
           </div>
