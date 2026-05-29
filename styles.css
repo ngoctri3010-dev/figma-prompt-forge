@@ -421,7 +421,8 @@ textarea {
 .workbench {
   display: grid;
   grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
-  min-height: min(780px, calc(100vh - 190px));
+  height: clamp(560px, calc(100vh - 320px), 700px);
+  min-height: 0;
   margin-bottom: 44px;
   overflow: hidden;
   border: 1px solid var(--line-strong);
@@ -432,6 +433,7 @@ textarea {
 
 .panel {
   display: flex;
+  height: 100%;
   min-height: 0;
   min-width: 0;
   flex-direction: column;
@@ -445,6 +447,7 @@ textarea {
 .panel--output {
   background: var(--terminal);
   color: var(--terminal-text);
+  min-height: 0;
 }
 
 .panel__header {
@@ -531,6 +534,7 @@ textarea {
 
   .workbench {
     grid-template-columns: 1fr;
+    height: auto;
     min-height: 0;
   }
 
@@ -540,7 +544,8 @@ textarea {
   }
 
   .panel--output {
-    min-height: 560px;
+    height: clamp(520px, calc(100vh - 160px), 680px);
+    min-height: 520px;
   }
 }
 
@@ -1149,6 +1154,7 @@ textarea:focus {
 .figma-preview {
   position: relative;
   z-index: 1;
+  flex: 0 0 auto;
   margin: 16px 18px 0;
   overflow: hidden;
   border: 1px solid var(--terminal-line);
@@ -1270,6 +1276,7 @@ textarea::-webkit-scrollbar-thumb {
 }
 
 .export {
+  flex: 0 0 auto;
   padding: 14px 18px;
   border-top: 1px solid var(--terminal-line);
   background: var(--terminal-2);
